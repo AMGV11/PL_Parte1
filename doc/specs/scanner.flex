@@ -72,7 +72,7 @@ letra = [A-Za-z]
     \"[^\"]*\"				{return crearCadena(sym.CADENA);}
            			       
 //Identificadores reservados
-	"true"					{return crearToken(sym.TRUE);}
+    "true"					{return crearToken(sym.TRUE);}
     "false"					{return crearToken(sym.FALSE);}
     "and"					{return crearToken(sym.AND);}			
     "begin"					{return crearToken(sym.BEGIN);}
