@@ -1,0 +1,41 @@
+procedure testCase01 () is
+
+CIERTO: constant := True;
+CIERTO: constant := True;
+
+x : Integer;
+x : Integer;
+
+type Tpersona is record
+dni: Integer;
+edad : Integer;
+casado : Boolean;
+end record;
+
+x : Integer;
+x,y : Integer;
+
+function uno() return Integer is
+begin
+return ;
+end uno;
+
+(x - (y - x))
+
+a/=b and (x>y and x>z)
+
+c1.usuario.c2
+
+resta(a, resta (2 ,a))
+
+i := 3 - 7;
+distinto := 3/=4;
+cita1.usuario.edad := 30;
+
+if esCierto then
+valor:=true;
+else
+valor:=false;
+end if;
+
+Put_line (1);

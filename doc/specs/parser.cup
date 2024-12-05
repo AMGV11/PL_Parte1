@@ -1,0 +1,441 @@
+package compiler.syntax;
+
+// Declaracion de importaciones 
+
+import java_cup.runtime.Symbol;
+import java.util.*;
+
+import es.uned.lsi.compiler.lexical.*;
+import es.uned.lsi.compiler.code.*;
+import es.uned.lsi.compiler.intermediate.*;
+import es.uned.lsi.compiler.semantic.*;
+import es.uned.lsi.compiler.semantic.symbol.*;
+import es.uned.lsi.compiler.semantic.type.*;
+import es.uned.lsi.compiler.syntax.*;
+
+import compiler.CompilerContext;
+import compiler.lexical.*;
+import compiler.syntax.nonTerminal.*;
+
+import compiler.semantic.symbol.*;
+import compiler.semantic.type.*;
+import compiler.intermediate.*;
+import compiler.code.*;
+
+// Declaracion del codigo de usuario
+
+action code {:
+	
+	SyntaxErrorManager   syntaxErrorManager   = CompilerContext.getSyntaxErrorManager();
+	SemanticErrorManager semanticErrorManager = CompilerContext.getSemanticErrorManager ();
+	ScopeManagerIF       scopeManager         = CompilerContext.getScopeManager ();
+	FinalCodeFactoryIF   finalCodeFactory     = CompilerContext.getFinalCodeFactory ();
+
+:}	
+
+parser code {:
+	SyntaxErrorManager syntaxErrorManager = CompilerContext.getSyntaxErrorManager();
+	
+	public void syntax_error(Symbol symbol)
+	{ 
+	    Token token = (Token) symbol.value;
+	    syntaxErrorManager.syntaxError ("Error sintactico", token);	    
+	}
+		
+	public void unrecovered_syntax_error(java_cup.runtime.Symbol symbol)
+	{	
+	    Token token = (Token) symbol.value;
+	    syntaxErrorManager.syntaxFatalError ("Error fatal", token);
+	}
+:}
+
+// Declaracion de terminales
+
+	// Números
+terminal Token NUM;
+
+	// Cadenas
+terminal Token CADENA;
+
+	// Identificadores reservados
+terminal Token TRUE;
+terminal Token FALSE;
+terminal Token AND;
+terminal Token BEGIN;
+terminal Token BOOL;
+terminal Token CONSTANT;
+terminal Token ELSE;
+terminal Token END;
+terminal Token IF;
+terminal Token INT;
+terminal Token IS;
+terminal Token LOOP;
+terminal Token OUT;
+terminal Token PROCEDURE;
+terminal Token PUTLINE;
+terminal Token RECORD;
+terminal Token RETURN;
+terminal Token THEN;
+terminal Token TYPE;
+terminal Token WHILE;
+terminal Token FUNCTION;
+
+	// Símbolos
+terminal Token APERTURA;
+terminal Token CIERRE;
+terminal Token COMA;
+terminal Token PUNTOCOMA;
+terminal Token DOSPUNTOS;
+terminal Token MENOS;
+terminal Token MULTIP;
+terminal Token MAYOR;
+terminal Token DISTINTO;
+terminal Token DECLARACION;
+terminal Token PUNTO;
+
+	// Identificador
+terminal Token IDENTIFICADOR;
+
+
+// Declaracion de no terminales
+
+non terminal  			program;
+non terminal Axiom		axiom;
+non terminal			inicio;
+non terminal			final;
+non terminal			listaDeclaraciones;
+non terminal			lista1;
+non terminal			lista2;
+non terminal			lista3;
+non terminal			lista4;
+non terminal			listaDeclaracionesTipo;
+non terminal 			listaConstPV;
+non terminal			listaVarPV;
+non terminal			listaSubprogramas;
+non terminal			listaSubprogramasPV;
+non terminal 			listaConst;
+non terminal			constante;
+non terminal			valor;
+non terminal			tipoPri;
+non terminal			record;
+non terminal			listaRegistro;
+non terminal			registro;
+non terminal 			tipo;
+non terminal			listaVar;
+non terminal			var;
+non terminal			identificadores;
+non terminal			sentReturn;
+non terminal			funcion;
+non terminal			procedimiento;
+non terminal			parteDeclaraF;
+non terminal			parteDeclaraP;
+non terminal			parteBeginSub;
+non terminal			defParametro;
+non terminal			listaParametros;
+non terminal			parametro;
+non terminal			parametro2;
+non terminal			tipoArit;
+non terminal			operadorArit;
+non terminal			exprGeneral;
+non terminal			exprArit;
+non terminal			exprArit2;
+non terminal			tipoLog;
+non terminal			operadorLog;
+non terminal			exprLog;
+non terminal			exprLog2;
+non terminal			exprReg;
+non terminal			invFunc;
+non terminal			paraInvFunc;
+non terminal			expresion;
+non terminal			tipoRef;
+non terminal			sentAsig;
+non terminal			exprCondicional;
+non terminal			sentIf;
+non terminal			sentWhile;
+non terminal			parametroEntrada;
+non terminal			sentEntrada;
+non terminal			sentencias;
+non terminal			listaSentencias;
+non terminal			listaSentenciasPV;
+non terminal			tipoSubprograma;
+non terminal			sentInvFunc;
+
+
+
+// Declaracion de relaciones de precedencia
+
+precedence left AND;
+precedence left DISTINTO;
+precedence left MAYOR;
+precedence left MENOS;
+precedence left MULTIP;
+precedence left PUNTO, APERTURA, CIERRE;
+
+
+// Declaración de reglas de produccion
+
+
+start with program;
+
+program ::= 
+  {: 
+        syntaxErrorManager.syntaxInfo ("Starting parsing..."); 
+   :}
+  axiom:ax
+  {:   		
+  		
+  		syntaxErrorManager.syntaxInfo ("Parsing process ended.");
+   :};
+
+
+axiom ::= inicio listaDeclaraciones BEGIN listaSentenciasPV final
+		;
+		
+		
+// Inicio y final
+inicio ::= PROCEDURE IDENTIFICADOR APERTURA CIERRE IS;
+
+final ::= END IDENTIFICADOR PUNTOCOMA;
+
+// Union de las diferentes declaraciones para no generar ambigüedad y que esten en el orden correcto
+listaDeclaraciones ::= IDENTIFICADOR lista1
+					| record listaDeclaracionesTipo
+					| listaSubprogramas
+					|
+					;
+
+ // Estas listas declaradas a continuacion ayudan al analizador a saber que camino coger, retrasando la elección
+ // Sin estas listas, el lenguaje seria ambiguo
+ 
+lista1 ::= DOSPUNTOS lista2
+		|  COMA identificadores DOSPUNTOS tipo PUNTOCOMA listaVarPV
+		;
+
+lista2 ::= CONSTANT DECLARACION valor PUNTOCOMA listaConstPV
+		|  tipoPri PUNTOCOMA listaDeclaracionesTipo 
+		|  IDENTIFICADOR PUNTOCOMA listaVarPV  
+		;
+			 
+lista3 ::= DOSPUNTOS lista4
+		|  COMA identificadores DOSPUNTOS tipo PUNTOCOMA listaVarPV
+  		;	
+			 		
+lista4 ::= tipoPri PUNTOCOMA listaDeclaracionesTipo
+		|  IDENTIFICADOR PUNTOCOMA listaVarPV
+		;			
+
+listaDeclaracionesTipo ::= IDENTIFICADOR lista3
+						| record listaDeclaracionesTipo
+						| listaSubprogramas
+						| 
+						;
+
+listaConstPV ::= listaConst listaDeclaracionesTipo
+			  |  listaDeclaracionesTipo
+			  ;
+			  
+listaVarPV ::= listaVar listaSubprogramasPV
+		    |  listaSubprogramasPV
+		    ;
+		    
+listaSubprogramasPV ::= listaSubprogramas
+					|
+					;
+					
+listaSubprogramas ::= listaSubprogramas tipoSubprograma
+				   |  tipoSubprograma
+				   ;
+
+					
+// Declaración de constantes simbólicas
+listaConst ::= listaConst constante
+			|  constante
+			;
+
+constante ::= IDENTIFICADOR DOSPUNTOS CONSTANT DECLARACION valor PUNTOCOMA;
+			 
+valor ::= TRUE
+	   |  FALSE
+	   |  NUM
+	   ;	 
+	  
+// Declaración de tipos primitivos	
+tipoPri ::= INT
+	     |  BOOL
+	     ;
+
+// Declaración de tipos estructurados
+record ::= TYPE IDENTIFICADOR IS RECORD listaRegistro END RECORD PUNTOCOMA;
+
+listaRegistro ::= listaRegistro registro
+			   |  registro
+			   ;
+
+registro ::= IDENTIFICADOR DOSPUNTOS tipo PUNTOCOMA;
+		  
+tipo ::= INT
+	  |  BOOL
+	  |  IDENTIFICADOR
+	  ;		  
+
+// Declaraciones de variables
+listaVar ::= listaVar var
+		  |  var
+		  ;
+
+var ::= identificadores DOSPUNTOS tipo PUNTOCOMA;
+
+identificadores ::= IDENTIFICADOR COMA identificadores
+				 |  IDENTIFICADOR
+				 ;
+
+//Declaración de subprogramas
+tipoSubprograma ::= funcion
+				 |  procedimiento
+				 ;
+
+
+funcion ::= parteDeclaraF parteBeginSub;
+
+procedimiento ::= parteDeclaraP parteBeginSub;
+
+parteDeclaraF ::= FUNCTION IDENTIFICADOR APERTURA defParametro CIERRE RETURN tipoPri IS listaDeclaracionesTipo;
+parteDeclaraP ::= PROCEDURE IDENTIFICADOR APERTURA defParametro CIERRE IS listaDeclaracionesTipo;
+
+parteBeginSub ::= BEGIN listaSentencias END IDENTIFICADOR PUNTOCOMA;
+
+defParametro ::= listaParametros parametro
+			  |  parametro
+			  | 
+			  ;
+
+listaParametros ::= listaParametros parametro2
+				 |  parametro2
+				 ;
+
+parametro ::= identificadores DOSPUNTOS tipo
+		   |  identificadores DOSPUNTOS OUT tipo
+		   ;
+
+parametro2 ::= identificadores DOSPUNTOS tipo PUNTOCOMA
+			|  identificadores DOSPUNTOS tipo OUT PUNTOCOMA
+			;
+			
+//Expresiones Aritmeticas
+
+ //Creamos un tipo de expresion llamado exprGeneral para que agrupe todas las expresiones que son solo identificadores,
+ //las cuales crean ambiguedad dado que no se puede saber con el analizador sintactico si cierto identificador es de un tipo u otro de expresion
+ 
+exprGeneral ::= IDENTIFICADOR; 
+
+tipoArit ::= NUM 
+		  |  IDENTIFICADOR
+		  |  invFunc
+		  ;
+
+operadorArit ::= MENOS
+		      |  MULTIP
+			  ;
+ //Creamos aqui tambien diferentes caminos para no producir ambiguedad   
+exprArit ::= NUM										
+		  |  exprArit2 operadorArit exprArit2			
+		  |  APERTURA exprArit2 CIERRE					
+		  ;
+		  
+exprArit2 ::= tipoArit
+		   |  exprArit2 operadorArit exprArit2
+		   |  APERTURA exprArit2 CIERRE 
+		   ;
+
+//Expresiones Logicas
+tipoLog ::= TRUE
+		 |  FALSE
+		 ;
+	    
+operadorLog ::= MAYOR
+			 |  DISTINTO
+			 ;
+ //En esta seccion pasa lo mismo que al principio, existe una amiguedad y para solucionarla necesitamos atrasar
+ //la decision del analizador, guiandole token a token, hasta llegar al resultado esperado
+exprLog ::= tipoLog								  		
+ 		 |  exprLog AND exprLog
+ 		 |  APERTURA exprLog CIERRE
+ 		 |  IDENTIFICADOR exprLog2
+ 		 |  invFunc exprLog2
+ 		 |  NUM operadorLog exprArit
+ 		 ;
+ 		 
+exprLog2 ::= operadorLog exprArit2				
+ 		  |  AND exprLog
+ 		  ;
+
+// Expresiones de acceso a campos de registros
+exprReg ::= IDENTIFICADOR PUNTO IDENTIFICADOR	
+		 |  exprReg PUNTO IDENTIFICADOR			
+		 ;  
+		 
+// Invocacion de funciones
+invFunc ::= IDENTIFICADOR APERTURA paraInvFunc CIERRE;
+
+sentInvFunc ::= IDENTIFICADOR APERTURA paraInvFunc CIERRE PUNTOCOMA;
+
+paraInvFunc ::= paraInvFunc COMA expresion
+			 |  expresion
+			 |
+			 ;
+
+expresion ::= invFunc
+		   |  exprArit
+		   |  exprLog
+		   |  exprReg
+		   |  exprGeneral
+		   ;			
+
+// Sentencias de asignacion
+tipoRef ::= IDENTIFICADOR
+		 |  exprReg
+		 ;
+
+sentAsig ::= tipoRef DECLARACION expresion PUNTOCOMA;
+
+// Sentencia de control If - Then - Else
+exprCondicional ::= exprLog
+				 |  exprGeneral
+				 |  invFunc
+				 ;
+				 
+sentIf ::= IF exprCondicional THEN listaSentencias END IF PUNTOCOMA
+		|  IF exprCondicional THEN listaSentencias ELSE listaSentencias END IF PUNTOCOMA
+		;	
+
+// Sentencia Return
+sentReturn ::= RETURN expresion PUNTOCOMA;
+
+// Sentencia de control While
+sentWhile ::= WHILE exprCondicional LOOP listaSentencias END LOOP PUNTOCOMA;
+
+// Sentencia de Entrada / Salida
+parametroEntrada ::= CADENA 
+				  |  exprArit
+				  |  exprLog
+				  |  exprGeneral
+				  ;
+sentEntrada ::= PUTLINE APERTURA parametroEntrada CIERRE PUNTOCOMA;	 
+
+// Sentencias
+sentencias ::= sentEntrada
+			|  sentReturn
+			|  sentIf
+			|  sentWhile
+			|  sentAsig
+			|  sentInvFunc
+			;
+			
+listaSentencias ::= listaSentencias sentencias
+				 |  sentencias
+				 ; 
+
+listaSentenciasPV ::= listaSentencias sentencias
+				   |  sentencias
+				   |
+				   ;
